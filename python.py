@@ -6,76 +6,69 @@ from datetime import datetime,timedelta
 =================================
 """
 
-menu = """
-Menu
-1 - Sacar
-2 - Depositar
-3 - Visualizar extrato
-4 - Criar usuario
-5 - Exibir usuario
-6 - Criar conta corrente
-7 - Sair
-"""
+def print_menu():
+    menu = """
+    Menu
+    1 - Sacar
+    2 - Depositar
+    3 - Visualizar extrato
+    4 - Criar usuario
+    5 - Exibir usuario
+    6 - Criar conta corrente
+    7 - Sair
+    """
 
-menu = menu.strip()
+    menu = menu.strip()
 
-largura = max(len(linha) for linha in menu.split("\n"))
+    largura = max(len(linha) for linha in menu.split("\n"))
 
-menu_centralizado = '\n'.join(linha.center(30,' ') for linha in menu.split('\n'))
+    menu_centralizado = '\n'.join(linha.center(30,' ') for linha in menu.split('\n'))
 
-borda = "=" * (30)
+    borda = "=" * (30)
 
-menu_centralizado = f"{borda}\n {menu_centralizado}\n {borda}"
+    menu_centralizado = f"{borda}\n {menu_centralizado}\n {borda}"
 
-"""
-=================================
-DEFINIÇÃO DO SALDO
-=================================
-"""
-saldo = 0
-extrato = []
-contador = 0
-LIMITE_SAQUE = 3
-
-saldo_formatado = "{:.2f}".format(saldo)
+    print(menu_centralizado)
 
 """
 =================================
  FUNÇÃO DE SAQUE
 =================================
 """
-def sacar():
-    global saldo, extrato, contador, LIMITE_SAQUE
-    if contador >= LIMITE_SAQUE:
+def sacar(*, saldo, valor,saques_feitos ,limite,extrato,limite_de_saques):
+
+    if saques_feitos >= limite_de_saques:
         print("Limite diario de saque atingido")
-    valor_de_saque = float(input("Qual valor você deseja sacar?"))
-    if valor_de_saque > saldo : 
+        return saldo, extrato, saques_feitos
+    if  valor > saldo : 
         print("Saldo insuficiente")
-    if valor_de_saque > 500 :
+        return saldo, extrato, saques_feitos
+    if valor > limite :
         print("O valor limite para saque é de R$500,00")
+        return saldo, extrato, saques_feitos
     else:
-        saldo -= valor_de_saque
-        extrato.append(f"Saque: -R${valor_de_saque:.2f}")
-        print(f"Saque de R${valor_de_saque:.2f} realizado")
-        contador += 1
+        saques_feitos += 1
+        saldo -= valor
+        extrato.append(f"Saque: -R${valor:.2f}")
+        print(f"Saque de R${valor:.2f} realizado")
+
+    return saldo, extrato, saques_feitos    
 """
 =================================
  FUNÇÃO DE DEPOSITO
 =================================
 """
-def depositar():
-    global saldo, extrato
-    valor_de_deposito = float(input('Qual valor será depositado?'))
-    saldo = saldo + valor_de_deposito
-    extrato.append(f"Deposito: +R${valor_de_deposito:.2f}")
-    print(f"Deposito de R${valor_de_deposito:.2f} realizado")
+def depositar(valor, saldo, extrato, /):
+    saldo = float(saldo) + valor
+    extrato.append(f"Deposito: +R${valor:.2f}")
+    print(f"Deposito de R${valor:.2f} realizado")
+    return saldo, extrato
 """
 =================================
  FUNÇÃO DE EXTRATO
 =================================
 """
-def exibir_extrato():
-    global saldo, extrato
+def exibir_extrato(saldo,/,*,extrato):
     print("Extrato:")
     if not extrato:
         print("Nenhuma transação ocorrida")
@@ -88,7 +81,6 @@ def exibir_extrato():
  FUNÇÃO DE CRIAR USUARIO
 =================================
 """
-usuarios = {}
 
 estados_brasil = {
     "Acre": "AC",
@@ -164,7 +156,7 @@ def validar_data_nascimento(data_nascimento):
     return idade >= 18
 
 
-def criar_usuario():
+def criar_usuario(usuarios):
     nome = input("Digite seu nome:")
     data_nascimento = input("Qual sua data de nascimento (DD/MM/AAAA)? ")
     if not validar_data_nascimento(data_nascimento):
@@ -215,7 +207,7 @@ def criar_usuario():
  FUNÇÃO DE PRINTAR USUARIO
 =================================
 """
-def printar_usuario():
+def printar_usuario(usuarios):
      for cpf, dados in usuarios.items():
         nome = dados["nome"]
         data_nascimento = dados["data_nascimento"]
@@ -236,23 +228,15 @@ def printar_usuario():
 CRIAR CONTA CORRENTE
 =================================
 """
-agencia = "0001"
-numero_conta = 1
 
 
-def criar_conta_corrente():
+def criar_conta_corrente(agencia, numero_conta,usuario_conta, usuarios):
 
-    global numero_conta
 
     cpf_lista = list(usuarios.keys())
-
-    for indice, usuario in enumerate(usuarios,start=1):
-        print(f"{indice} - {usuario}")
-
-    usuario_conta = input("Você deseja criar uma conta para qual CPF?").replace('.', '').replace('-', '')
-
+   
     if usuario_conta in usuarios:
-        usuario_conta = usuario_conta
+        pass
     elif usuario_conta.isdigit():
         indice = int(usuario_conta)
         if 1 <= indice <= len(cpf_lista):
@@ -274,13 +258,14 @@ def criar_conta_corrente():
 
     usuarios[usuario_conta]["contas_correntes"].append(nova_conta)
 
+    numero_conta += 1
 
     print(f"""Conta criada com sucesso!!
           CPF  - {usuario_conta}
           Agencia : {nova_conta['agencia']} 
           Conta: {nova_conta['numero_conta']}""")
 
-    numero_conta += 1 
+    return numero_conta, usuario_conta
 
 
 """
@@ -289,26 +274,56 @@ def criar_conta_corrente():
 =================================
 """
 
-while True :
+def main():
+    saldo = 0
+    saldo = "{:.2f}".format(saldo)
+    extrato = []
+    contador = 0
+    limite=500
+    LIMITE_SAQUE = 3
+    usuarios = {}
+    agencia = "0001"
+    numero_conta = 1
+    while True :
 
-    print(menu_centralizado)
+        print_menu()
 
-    operação = int(input("Selecione a operação:"))
+        operação = int(input("Selecione a operação:"))
 
-    if operação == 1 :
-        sacar()
-    elif operação == 2  :
-        depositar()
-    elif operação == 3 :
-        exibir_extrato()
-    elif operação == 4 :
-        criar_usuario()
-    elif operação == 5 :
-        printar_usuario()
-    elif operação == 6 :
-        criar_conta_corrente()
-    elif operação == 7 :
-        print("Saindo")
-        break
-    else:
-        print("Operação invalida")
+        if operação == 1 :
+            valor = float(input("Qual valor você deseja sacar?"))
+            saldo, extrato, contador = sacar(
+                saldo = saldo,
+                valor = valor,
+                extrato = extrato,
+                limite = limite,
+                limite_de_saques = LIMITE_SAQUE,
+                saques_feitos = contador
+            )
+        elif operação == 2  :
+            valor = float(input("Quanto você deseja depositar?"))
+
+            saldo, extrato = depositar(valor,saldo,extrato)
+        elif operação == 3 :
+            exibir_extrato(saldo, extrato=extrato)
+        elif operação == 4 :
+            criar_usuario(usuarios=usuarios)
+        elif operação == 5 :
+            printar_usuario(usuarios=usuarios)
+        elif operação == 6:
+            for indice, usuario in enumerate(usuarios, start=1):
+                print(f"{indice} - {usuario}")
+            usuario_conta = input("Você deseja criar uma conta para qual CPF?").replace('.', '').replace('-', '')
+            numero_conta, usuario_conta = criar_conta_corrente(
+                agencia=agencia, 
+                numero_conta=numero_conta,
+                usuario_conta=usuario_conta,
+                usuarios=usuarios
+            )
+        elif operação == 7 :
+            print("Saindo")
+            break
+        else:
+            print("Operação invalida")
+
+main()
